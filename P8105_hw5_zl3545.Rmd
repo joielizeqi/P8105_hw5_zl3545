@@ -1,0 +1,48 @@
+---
+title: "Homework 5"
+author: "Zeqi Li"
+date: "2024-11-12"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+# Problem 1
+Define a function that identifies whether at least two people in a group share the same birthday.
+```{r p1_func}
+bday_sim = function(n) {
+  bday = sample(1:365, 
+                 n, 
+                 replace = TRUE)
+  return(any(duplicated(bday)))
+}
+```
+
+Run the simulation for 10000 times for group sizes ranged from 2 to 50 using the above function. 
+```{r p1_sim}
+bday_res = tibble(group_size = rep(2:50, 
+                                   each = 10000)) |> 
+  mutate(result = map_lgl(group_size, 
+                          bday_sim))
+
+res_df = bday_res |> 
+  group_by(group_size) |> 
+  summarize(avg_prob = mean(result))
+```
+
+Plotting probability as a function of group size.
+```{r p1_plot}
+res_df |> 
+  ggplot(aes(x = group_size,
+             y = avg_prob)) +
+  geom_point() + 
+  labs(title = "Average probability of shared birthday in a group",
+       x = "Group size",
+       y = "Average probability")
+```
+COMMENT
+
+# Problem 2
+
