@@ -45,4 +45,43 @@ res_df |>
 COMMENT
 
 # Problem 2
+Define a function that models drawing data from a normal distribution and runs a one-sample t test for each dataset.
+```{r p2_func}
+t_test_sim = function(n = 30, 
+                      mu, 
+                      sigma = 5) {
+  data = rnorm(n, 
+               mean = mu, 
+               sd = sigma)
+  
+  t_res = t.test(data, 
+                 mu = 0,
+                 alpha = 0.05)
+  
+  res_df = t_res |> 
+    broom::tidy() |> 
+    select(mu_hat = estimate,
+           p_value = p.value)
+  
+  return(res_df)
+}
+```
+
+Test the above function on $\mu = 0$. Obtain 5000 datasets and t test results by running the above function.
+```{r p2_test}
+mu = 0
+
+mu0_res = expand_grid(id = 1:5000) |> 
+  mutate(res = map(id, 
+                   ~ t_test_sim(mu = 0))) |> 
+  unnest(res)
+```
+
+Apply the function on different $\mu$s.
+```{r p2_sim}
+mu = c(0, 1, 2, 3, 4, 5)
+
+
+```
+
 
