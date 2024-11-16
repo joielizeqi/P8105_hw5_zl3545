@@ -42,6 +42,7 @@ res_df |>
        x = "Group size",
        y = "Average probability")
 ```
+
 COMMENT
 
 # Problem 2
@@ -101,6 +102,7 @@ power_df |> ggplot(aes(x = mu,
        x = "True mean (µ)") +
   scale_x_discrete(limits = factor(mu))
 ```
+
 An effect size is defined as the difference between the true value of mean ($\mu$) and the mean under our null hypothesis, which is 0. As we set larger and larger values for the true mean, the effect size also gets larger. From the above plot, we can infer that as the effect size increases, the power of the test also increases. This is because as effect size gets larger, it is more deviated from $\mu = 0$ (our null hypothesis). Therefore, it is more likely to reject the null hypothesis, making the test more powerful.
 
 ```{r p2_est_plot}
@@ -111,15 +113,17 @@ avg_mu_df = mu_res |>
 
 avg_mu_df |> 
   ggplot(aes(x = mu)) +
-  geom_point(aes(y = avg_mu_hat,
+  geom_line(aes(y = avg_mu_hat,
                  color = "all samples")) +
-  geom_point(aes(y = sig_avg_mu_hat,
+  geom_line(aes(y = sig_avg_mu_hat,
                  color = "significant samples")) +
   scale_x_discrete(limits = factor(mu)) +
   scale_y_discrete(limits = factor(1:6)) + 
   labs(title = "Average estimates of mean vs. true mean",
        x = "True mean (µ)",
        y = "Average estimates")
-
 ```
+
+From the red graph, we can see that the averages of $\hat{\mu}$ from all samples is equal to the true value of $\mu$. However, the blue graph shows that the sample averages of $\hat{\mu}$ from tests that reject the null hypothesis are not equal to the value of $\mu$ at the beginning, but they slowly converge to the value of $\mu$ as effect size increases. This is because when effect size is small, we need a large enough $\hat{\mu}$ in order to reject our null hypothesis ($\mu = 0$). When the effect size is large, however, we don't need a very distinct $\hat{\mu}$ in order to reject the null. Therefore, we can see that the graph of average $\hat{\mu}$ from significant samples (p < 0.05) is higher than that from all samples at the beginning, but then it approaches the graph of average $\hat{\mu}$ from all samples and the true mean values.
+
 
