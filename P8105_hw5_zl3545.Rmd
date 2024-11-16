@@ -7,9 +7,11 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(readr)
 ```
 
 # Problem 1
+## Define function
 Define a function that identifies whether at least two people in a group share the same birthday.
 ```{r p1_func}
 bday_sim = function(n) {
@@ -20,6 +22,8 @@ bday_sim = function(n) {
 }
 ```
 
+
+## Run simulations
 Run the simulation for 10000 times for group sizes ranged from 2 to 50 using the above function. 
 ```{r p1_sim}
 bday_res = tibble(group_size = rep(2:50, 
@@ -32,20 +36,29 @@ res_df = bday_res |>
   summarize(avg_prob = mean(result))
 ```
 
-Plotting probability as a function of group size.
+## Visualization
+Plot probability as a function of group size.
 ```{r p1_plot}
 res_df |> 
   ggplot(aes(x = group_size,
              y = avg_prob)) +
   geom_point() + 
-  labs(title = "Average probability of shared birthday in a group",
-       x = "Group size",
+  geom_line() +
+  labs(title = "Average probability of sharing a birthday in a group",
+       x = "Group size (n)",
        y = "Average probability")
 ```
 
-COMMENT
+From the above plot, we can see that the as group size increases, the average probability of shared birthdays in the group also increases, and the increase almost follows a logistic behavior. 
+
+This indicates that in smaller group sizes (n < ~10), the probability of at least two people sharing a birthday grows slowly. But once the group size gets large enough, as shown on the graph from n = 10 to n = 30, the probability grows very fast, meaning that in these large groups, it is very likely for two people to have the same birthday. 
+
+In particular, the probability exceeds 0.50 at n = 23 in our simulation, which actually aligns with the famous "birthday paradox"—in a group of just 23 people, there's more than 50% chance that at least two people will share the same birthday. 
+
+When n gets closer to 50, we can see that the probabilities are close to 1, which means that for a large group with around 50 people, it is almost certain that at least two people will share their birthday.
 
 # Problem 2
+## Define function
 Define a function that models drawing data from a normal distribution and runs a one-sample t test for each dataset.
 ```{r p2_func}
 t_test_sim = function(n = 30, 
@@ -68,6 +81,8 @@ t_test_sim = function(n = 30,
 }
 ```
 
+
+## µ = 0
 Test the above function on $\mu = 0$. Obtain 5000 datasets and t test results by running the above function.
 ```{r p2_test}
 mu = 0
@@ -76,8 +91,11 @@ mu0_res = expand_grid(id = 1:5000) |>
   mutate(res = map(id, 
                    ~ t_test_sim(mu = 0))) |> 
   unnest(res)
+
+mu0_res
 ```
 
+## Other µ values
 Apply the function on different $\mu$s.
 ```{r p2_sim, message = FALSE}
 mu = 1:6
@@ -88,7 +106,9 @@ mu_res = expand_grid(id = 1:5000,
                    ~ t_test_sim(mu = .x))) |> 
   unnest(res)
 ```
-Plotting the powers of t test across all $\mu$s.
+
+## Visualization
+### Plot the powers of t test across all µs.
 ```{r p2_plot_power}
 power_df = mu_res |> 
   group_by(mu) |> 
@@ -97,6 +117,7 @@ power_df = mu_res |>
 power_df |> ggplot(aes(x = mu,
                        y = power)) +
   geom_point() +
+  geom_line() + 
   labs(title = "Power of one-sample t test across µ",
        y = "Power",
        x = "True mean (µ)") +
@@ -105,6 +126,7 @@ power_df |> ggplot(aes(x = mu,
 
 An effect size is defined as the difference between the true value of mean ($\mu$) and the mean under our null hypothesis, which is 0. As we set larger and larger values for the true mean, the effect size also gets larger. From the above plot, we can infer that as the effect size increases, the power of the test also increases. This is because as effect size gets larger, it is more deviated from $\mu = 0$ (our null hypothesis). Therefore, it is more likely to reject the null hypothesis, making the test more powerful.
 
+### Plot the average sample estimate of µ for all µs
 ```{r p2_est_plot}
 avg_mu_df = mu_res |> 
   group_by(mu) |> 
@@ -125,5 +147,112 @@ avg_mu_df |>
 ```
 
 From the red graph, we can see that the averages of $\hat{\mu}$ from all samples is equal to the true value of $\mu$. However, the blue graph shows that the sample averages of $\hat{\mu}$ from tests that reject the null hypothesis are not equal to the value of $\mu$ at the beginning, but they slowly converge to the value of $\mu$ as effect size increases. This is because when effect size is small, we need a large enough $\hat{\mu}$ in order to reject our null hypothesis ($\mu = 0$). When the effect size is large, however, we don't need a very distinct $\hat{\mu}$ in order to reject the null. Therefore, we can see that the graph of average $\hat{\mu}$ from significant samples (p < 0.05) is higher than that from all samples at the beginning, but then it approaches the graph of average $\hat{\mu}$ from all samples and the true mean values.
+
+# Problem 3
+## Import data from GitHub
+```{r p3_import, message = FALSE}
+url = "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
+
+homicide = read_csv(url(url),
+                    na = c("", "Unknown"))
+
+summary(homicide)
+```
+
+The raw `homicide` dataset contains data of criminal homicide cases over the past decade in 50 cities in the US, as collected by The Washington Post. It uses 12 variables (`r colnames(homicide)`) to describe the `r nrow(homicide)-1` observations. 
+
+## Tidy up the `homicide` dataset
+Create a `city_state` variable.
+```{r p3_tidy}
+homicide_tidy = homicide |> 
+  mutate(city_state = paste(city, 
+                            state, 
+                            sep = ", ")) |> 
+  select(-city & -state)
+```
+
+Obtain summary data frame that has the total number of homicides and unsolved homicides across cities.
+```{r p3_sum}
+city_sum = homicide_tidy |> 
+  group_by(city_state) |> 
+  summarize(total_homicide = n(),
+            unsolved_homicide = sum(disposition %in% c("Closed without arrest",
+                                                       "Open/No arrest")))
+
+knitr::kable(city_sum,
+             caption = "Estimated proportion and confidence interval in all 50 cities",
+             col.names = c("City, state",
+                           "Total homicides",
+                           "Unsolved homicides"))
+```
+
+## Proportion of unsolved homicides in Baltimore
+Estimate the proportion and save the output.
+```{r p3_prop}
+baltimore_sum = homicide_tidy |> 
+  filter(city_state == "Baltimore, MD") |> 
+  summarize(total_homicide = n(),
+            unsolved_homicide = sum(disposition %in% c("Closed without arrest",
+                                                       "Open/No arrest")))
+
+prop_test_res = prop.test(pull(baltimore_sum, unsolved_homicide),
+                          pull(baltimore_sum, total_homicide)) |> 
+  broom::tidy() |> 
+  select(estimate, 
+         conf.low,
+         conf.high) |> 
+  mutate(conf_int = paste(round(conf.low, 3),
+                          round(conf.high, 3),
+                          sep = ", "))
+```
+The estimated proportion of unsolved homicides in Baltimore, MD is `r pull(prop_test_res, estimate)` and the confidence interval is (`r pull(prop_test_res, conf_int)`).
+
+
+## Proportion of unsolved homicides in all 50 cities
+```{r p3_all_prop, warning = FALSE}
+city_sum = homicide_tidy |> 
+  group_by(city_state) |> 
+  summarize(total_homicide = n(),
+            unsolved_homicide = sum(disposition %in% c("Closed without arrest",
+                                                       "Open/No arrest")))
+
+all_prop_test_res = city_sum |> 
+  mutate(output = map2(unsolved_homicide, total_homicide, ~ prop.test(.x, .y)),
+         result = map(output, broom::tidy)) |> 
+  unnest(result) |> 
+  select(city_state,
+         estimate,
+         conf.low,
+         conf.high) |> 
+  mutate(conf_int = paste(round(conf.low, 3),
+                          round(conf.high, 3),
+                          sep = ", "))
+
+all_prop_test_res |> 
+  select(-conf.low & -conf.high) |> 
+  knitr::kable(digits = 3,
+               col.names = c("City, state",
+                           "Estimated proportion", 
+                           "Confidence interval"),
+               caption = "Estimated proportion and confidence interval for unsolved homicides in 50 cities")
+```
+
+## Visualization
+Plot the estimated proportion and confidence interval for each city.
+```{r p3_plot}
+all_prop_test_res |> 
+  ggplot(aes(x = reorder(city_state, estimate),
+             y = estimate)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low,
+                    ymax = conf.high),
+                width = 0.3) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust = 1)) +
+  labs(title = "Estimated proportion and confidence interval for all cities",
+       x = "City",
+       y = "Estimated proportion")
+```
 
 
